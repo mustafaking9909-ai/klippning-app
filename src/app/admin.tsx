@@ -1,73 +1,109 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, ScrollView, TouchableOpacity, Alert } from "react-native";
+import React, { useState } from "react";
+import { View, Text, TextInput, TouchableOpacity, Alert } from "react-native";
+import { useRouter } from "expo-router";
 
 const API = "https://booking-backend-jcxi.onrender.com/bookings";
 
-export default function Admin() {
-  const [bookings, setBookings] = useState([]);
+export default function Index() {
+  const router = useRouter();
 
-  const fetchBookings = async () => {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [time, setTime] = useState("");
+
+  const bookTime = async () => {
+    if (!name || !email || !phone || !time) {
+      Alert.alert("Fyll i alla fält");
+      return;
+    }
+
     try {
-      const res = await fetch(API);
-      const data = await res.json();
-      setBookings(data.reverse());
-    } catch (err) {
-      Alert.alert("Fel vid hämtning");
+      await fetch(API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          email,
+          phone,
+          time,
+        }),
+      });
+
+      Alert.alert("Bokning skapad 💈");
+
+      setName("");
+      setEmail("");
+      setPhone("");
+      setTime("");
+    } catch (error) {
+      Alert.alert("Något gick fel");
     }
   };
-
-  const deleteBooking = async (id: number) => {
-    try {
-      await fetch(`${API}/${id}`, { method: "DELETE" });
-      fetchBookings();
-    } catch (err) {
-      Alert.alert("Kunde inte ta bort");
-    }
-  };
-
-  useEffect(() => {
-    fetchBookings();
-  }, []);
 
   return (
-    <ScrollView style={{ flex: 1, padding: 20, paddingTop: 60 }}>
-      
+    <View style={{ flex: 1, padding: 20, paddingTop: 60 }}>
+
+      {/* 🔐 ADMIN KNAPP */}
+      <TouchableOpacity
+        onPress={() => router.push("/login")}
+        style={{
+          position: "absolute",
+          top: 40,
+          right: 20,
+          backgroundColor: "black",
+          padding: 10,
+          borderRadius: 8,
+        }}
+      >
+        <Text style={{ color: "white" }}>Admin</Text>
+      </TouchableOpacity>
+
       <Text style={{ fontSize: 28, fontWeight: "bold", marginBottom: 20 }}>
-        Admin Dashboard 💈
+        Boka tid 💈
       </Text>
 
-      {bookings.length === 0 ? (
-        <Text>Inga bokningar</Text>
-      ) : (
-        bookings.map((b: any) => (
-          <View
-            key={b.id}
-            style={{
-              padding: 15,
-              backgroundColor: "#eee",
-              marginBottom: 10,
-              borderRadius: 10,
-            }}
-          >
-            <Text style={{ fontWeight: "bold" }}>{b.name}</Text>
-            <Text>{b.email}</Text>
-            <Text>{b.phone}</Text>
-            <Text>{b.time}</Text>
+      <TextInput
+        placeholder="Namn"
+        value={name}
+        onChangeText={setName}
+        style={{ borderWidth: 1, marginBottom: 10, padding: 10 }}
+      />
 
-            <TouchableOpacity
-              onPress={() => deleteBooking(b.id)}
-              style={{
-                marginTop: 10,
-                backgroundColor: "black",
-                padding: 10,
-                borderRadius: 6,
-              }}
-            >
-              <Text style={{ color: "white" }}>Ta bort</Text>
-            </TouchableOpacity>
-          </View>
-        ))
-      )}
-    </ScrollView>
+      <TextInput
+        placeholder="Email"
+        value={email}
+        onChangeText={setEmail}
+        style={{ borderWidth: 1, marginBottom: 10, padding: 10 }}
+      />
+
+      <TextInput
+        placeholder="Telefon"
+        value={phone}
+        onChangeText={setPhone}
+        style={{ borderWidth: 1, marginBottom: 10, padding: 10 }}
+      />
+
+      <TextInput
+        placeholder="Tid (ex 14:00)"
+        value={time}
+        onChangeText={setTime}
+        style={{ borderWidth: 1, marginBottom: 20, padding: 10 }}
+      />
+
+      <TouchableOpacity
+        onPress={bookTime}
+        style={{
+          backgroundColor: "black",
+          padding: 15,
+          borderRadius: 8,
+        }}
+      >
+        <Text style={{ color: "white", textAlign: "center" }}>
+          Boka tid
+        </Text>
+      </TouchableOpacity>
+
+    </View>
   );
 }
