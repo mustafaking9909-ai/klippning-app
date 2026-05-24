@@ -1,109 +1,134 @@
-import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, Alert } from "react-native";
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+} from "react-native";
 import { useRouter } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const API = "https://booking-backend-jcxi.onrender.com/bookings";
 
-export default function Index() {
+export default function Admin() {
   const router = useRouter();
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [time, setTime] = useState("");
+  // 🔐 CHECK LOGIN
+  useEffect(() => {
+    const checkAuth = async () => {
+      const isAdmin = await AsyncStorage.getItem("admin");
 
-  const bookTime = async () => {
-    if (!name || !email || !phone || !time) {
-      Alert.alert("Fyll i alla fält");
-      return;
-    }
+      if (isAdmin !== "true") {
+        router.replace("/login");
+      } else {
+        loadBookings();
+      }
+    };
 
+    checkAuth();
+  }, []);
+
+  // 📦 FETCH BOOKINGS
+  const loadBookings = async () => {
     try {
-      await fetch(API, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          email,
-          phone,
-          time,
-        }),
-      });
-
-      Alert.alert("Bokning skapad 💈");
-
-      setName("");
-      setEmail("");
-      setPhone("");
-      setTime("");
-    } catch (error) {
-      Alert.alert("Något gick fel");
+      const res = await fetch(API);
+      const data = await res.json();
+      setBookings(data.reverse());
+    } catch (err) {
+      Alert.alert("Kunde inte hämta bokningar");
+    } finally {
+      setLoading(false);
     }
   };
 
+  // 🗑 DELETE BOOKING
+  const deleteBooking = async (id: number) => {
+    try {
+      await fetch(`${API}/${id}`, {
+        method: "DELETE",
+      });
+
+      loadBookings();
+    } catch (err) {
+      Alert.alert("Kunde inte ta bort bokning");
+    }
+  };
+
+  // 🚪 LOGOUT
+  const logout = async () => {
+    await AsyncStorage.removeItem("admin");
+    router.replace("/login");
+  };
+
   return (
-    <View style={{ flex: 1, padding: 20, paddingTop: 60 }}>
-
-      {/* 🔐 ADMIN KNAPP */}
-      <TouchableOpacity
-        onPress={() => router.push("/login")}
-        style={{
-          position: "absolute",
-          top: 40,
-          right: 20,
-          backgroundColor: "black",
-          padding: 10,
-          borderRadius: 8,
-        }}
-      >
-        <Text style={{ color: "white" }}>Admin</Text>
-      </TouchableOpacity>
-
-      <Text style={{ fontSize: 28, fontWeight: "bold", marginBottom: 20 }}>
-        Boka tid 💈
+    <ScrollView
+      style={{ flex: 1 }}
+      contentContainerStyle={{ padding: 20, paddingTop: 60 }}
+    >
+      {/* HEADER */}
+      <Text style={{ fontSize: 28, fontWeight: "bold", marginBottom: 10 }}>
+        Admin Dashboard 💈
       </Text>
 
-      <TextInput
-        placeholder="Namn"
-        value={name}
-        onChangeText={setName}
-        style={{ borderWidth: 1, marginBottom: 10, padding: 10 }}
-      />
-
-      <TextInput
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        style={{ borderWidth: 1, marginBottom: 10, padding: 10 }}
-      />
-
-      <TextInput
-        placeholder="Telefon"
-        value={phone}
-        onChangeText={setPhone}
-        style={{ borderWidth: 1, marginBottom: 10, padding: 10 }}
-      />
-
-      <TextInput
-        placeholder="Tid (ex 14:00)"
-        value={time}
-        onChangeText={setTime}
-        style={{ borderWidth: 1, marginBottom: 20, padding: 10 }}
-      />
-
+      {/* LOGOUT */}
       <TouchableOpacity
-        onPress={bookTime}
+        onPress={logout}
         style={{
-          backgroundColor: "black",
-          padding: 15,
+          backgroundColor: "red",
+          padding: 12,
           borderRadius: 8,
+          marginBottom: 20,
         }}
       >
         <Text style={{ color: "white", textAlign: "center" }}>
-          Boka tid
+          Logout
         </Text>
       </TouchableOpacity>
 
-    </View>
+      {/* LOADING */}
+      {loading ? (
+        <Text>Laddar bokningar...</Text>
+      ) : bookings.length === 0 ? (
+        <Text>Inga bokningar ännu</Text>
+      ) : (
+        bookings.map((b) => (
+          <View
+            key={b.id}
+            style={{
+              backgroundColor: "#eee",
+              padding: 15,
+              marginBottom: 10,
+              borderRadius: 10,
+            }}
+          >
+            <Text style={{ fontWeight: "bold", fontSize: 18 }}>
+              {b.name}
+            </Text>
+
+            <Text>{b.email}</Text>
+            <Text>{b.phone}</Text>
+            <Text>Tid: {b.time}</Text>
+
+            {/* DELETE */}
+            <TouchableOpacity
+              onPress={() => deleteBooking(b.id)}
+              style={{
+                marginTop: 10,
+                backgroundColor: "black",
+                padding: 10,
+                borderRadius: 6,
+              }}
+            >
+              <Text style={{ color: "white" }}>
+                Ta bort bokning
+              </Text>
+            </TouchableOpacity>
+          </View>
+        ))
+      )}
+    </ScrollView>
   );
 }
