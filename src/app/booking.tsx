@@ -1,48 +1,47 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
-  TouchableOpacity,
   TextInput,
+  TouchableOpacity,
   ScrollView,
   Alert,
   ActivityIndicator,
 } from "react-native";
 
 import { supabase } from "../lib/supabase";
-
-const DAYS = [
-  { key: "monday", label: "Måndag" },
-  { key: "tuesday", label: "Tisdag" },
-  { key: "wednesday", label: "Onsdag" },
-  { key: "thursday", label: "Torsdag" },
-  { key: "friday", label: "Fredag" },
-  { key: "saturday", label: "Lördag" },
-  { key: "sunday", label: "Söndag" },
-];
+import LuxuryCalendar from "../components/LuxuryCalendar";
 
 const TIMES = [
-  "10:00",
-  "11:00",
-  "12:00",
   "13:00",
+  "13:30",
   "14:00",
+  "14:30",
   "15:00",
+  "15:30",
   "16:00",
   "17:00",
+  "17:30",
+  "18:00",
+  "18:30",
+  "19:00",
+  "20:00",
+  "20:30",
+  "21:00",
+  "21:30",
+  "22:00",
 ];
 
 export default function BookingScreen() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
 
-  const [selectedDay, setSelectedDay] = useState("monday");
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [selectedTime, setSelectedTime] = useState("");
 
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // 💈 LOAD BOOKINGS
   const loadBookings = async () => {
     const { data } = await supabase.from("bookings").select("*");
     if (data) setBookings(data);
@@ -52,14 +51,14 @@ export default function BookingScreen() {
     loadBookings();
   }, []);
 
-  // ❌ CHECK IF BOOKED
-  const isTaken = (day: string, time: string) => {
-    return bookings.some((b) => b.day === day && b.time === time);
+  const isTaken = (day: number | null, time: string) => {
+    return bookings.some(
+      (b) => b.day == day && b.time === time
+    );
   };
 
-  // 💥 BOOK
   const handleBooking = async () => {
-    if (!name || !phone || !selectedTime) {
+    if (!name || !phone || !selectedDay || !selectedTime) {
       Alert.alert("Fyll i alla fält");
       return;
     }
@@ -70,7 +69,7 @@ export default function BookingScreen() {
       {
         name,
         phone,
-        day: selectedDay,
+        day: String(selectedDay),
         time: selectedTime,
         status: "confirmed",
         price: 150,
@@ -110,39 +109,14 @@ export default function BookingScreen() {
         Boka tid 💈
       </Text>
 
-      {/* DAYS */}
-      <Text style={{ color: "white", marginLeft: 20, marginTop: 20 }}>
-        Välj dag
-      </Text>
-
-      <ScrollView horizontal style={{ paddingLeft: 20 }}>
-        {DAYS.map((d) => (
-          <TouchableOpacity
-            key={d.key}
-            onPress={() => setSelectedDay(d.key)}
-            style={{
-              backgroundColor:
-                selectedDay === d.key ? "gold" : "#1A1A1A",
-              padding: 12,
-              borderRadius: 12,
-              marginRight: 10,
-              marginTop: 10,
-            }}
-          >
-            <Text
-              style={{
-                color: selectedDay === d.key ? "black" : "white",
-                fontWeight: "600",
-              }}
-            >
-              {d.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+      {/* CALENDAR */}
+      <LuxuryCalendar
+        selectedDay={selectedDay}
+        onSelectDay={setSelectedDay}
+      />
 
       {/* TIMES */}
-      <Text style={{ color: "white", marginLeft: 20, marginTop: 25 }}>
+      <Text style={{ color: "white", marginLeft: 20 }}>
         Välj tid
       </Text>
 
@@ -178,7 +152,9 @@ export default function BookingScreen() {
               <Text
                 style={{
                   color:
-                    selectedTime === t && !taken ? "black" : "white",
+                    selectedTime === t && !taken
+                      ? "black"
+                      : "white",
                 }}
               >
                 {t}
@@ -217,7 +193,6 @@ export default function BookingScreen() {
           }}
         />
 
-        {/* BUTTON */}
         <TouchableOpacity
           onPress={handleBooking}
           disabled={loading}
