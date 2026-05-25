@@ -1,134 +1,96 @@
 import React, { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
-} from "react-native";
-import { useRouter } from "expo-router";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { View, Text, ScrollView, Alert } from "react-native";
+import { supabase } from "../lib/supabase";
 
-const API = "https://booking-backend-jcxi.onrender.com/bookings";
-
-export default function Admin() {
-  const router = useRouter();
+export default function AdminScreen() {
   const [bookings, setBookings] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  // 🔐 CHECK LOGIN
+  // 📦 LOAD BOOKINGS
+  const loadBookings = async () => {
+    const { data, error } = await supabase
+      .from("bookings")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (!error) setBookings(data || []);
+  };
+
+  // 🔔 SEND WEB PUSH (NETLIFY FUNCTION)
+  const sendPush = async (subscription: any, name: string, time: string) => {
+    try {
+      await fetch("/.netlify/functions/send-push", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          subscription,
+          title: "💈 Ny bokning!",
+          body: `${name} bokade ${time}`,
+        }),
+      });
+    } catch (err) {
+      console.log("PUSH ERROR:", err);
+    }
+  };
+
   useEffect(() => {
-    const checkAuth = async () => {
-      const isAdmin = await AsyncStorage.getItem("admin");
+    loadBookings();
 
-      if (isAdmin !== "true") {
-        router.replace("/login");
-      } else {
-        loadBookings();
-      }
+    const channel = supabase
+      .channel("bookings-realtime")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "bookings" },
+        async (payload) => {
+          const newBooking = payload.new;
+
+          // 💈 update UI direkt
+          setBookings((prev) => [newBooking, ...prev]);
+
+          // 📲 admin alert
+          Alert.alert(
+            "Ny bokning 💈",
+            `${newBooking.name} - ${newBooking.day} ${newBooking.time}`
+          );
+
+          // 🔥 SEND PUSH TO CUSTOMER
+          if (newBooking.push_subscription) {
+            await sendPush(
+              newBooking.push_subscription,
+              newBooking.name,
+              newBooking.time
+            );
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
     };
-
-    checkAuth();
   }, []);
 
-  // 📦 FETCH BOOKINGS
-  const loadBookings = async () => {
-    try {
-      const res = await fetch(API);
-      const data = await res.json();
-      setBookings(data.reverse());
-    } catch (err) {
-      Alert.alert("Kunde inte hämta bokningar");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 🗑 DELETE BOOKING
-  const deleteBooking = async (id: number) => {
-    try {
-      await fetch(`${API}/${id}`, {
-        method: "DELETE",
-      });
-
-      loadBookings();
-    } catch (err) {
-      Alert.alert("Kunde inte ta bort bokning");
-    }
-  };
-
-  // 🚪 LOGOUT
-  const logout = async () => {
-    await AsyncStorage.removeItem("admin");
-    router.replace("/login");
-  };
-
   return (
-    <ScrollView
-      style={{ flex: 1 }}
-      contentContainerStyle={{ padding: 20, paddingTop: 60 }}
-    >
-      {/* HEADER */}
-      <Text style={{ fontSize: 28, fontWeight: "bold", marginBottom: 10 }}>
-        Admin Dashboard 💈
+    <ScrollView style={{ flex: 1, backgroundColor: "#0A0A0A", padding: 15 }}>
+      <Text style={{ color: "gold", fontSize: 26, marginTop: 40 }}>
+        Admin 💈
       </Text>
 
-      {/* LOGOUT */}
-      <TouchableOpacity
-        onPress={logout}
-        style={{
-          backgroundColor: "red",
-          padding: 12,
-          borderRadius: 8,
-          marginBottom: 20,
-        }}
-      >
-        <Text style={{ color: "white", textAlign: "center" }}>
-          Logout
-        </Text>
-      </TouchableOpacity>
-
-      {/* LOADING */}
-      {loading ? (
-        <Text>Laddar bokningar...</Text>
-      ) : bookings.length === 0 ? (
-        <Text>Inga bokningar ännu</Text>
-      ) : (
-        bookings.map((b) => (
-          <View
-            key={b.id}
-            style={{
-              backgroundColor: "#eee",
-              padding: 15,
-              marginBottom: 10,
-              borderRadius: 10,
-            }}
-          >
-            <Text style={{ fontWeight: "bold", fontSize: 18 }}>
-              {b.name}
-            </Text>
-
-            <Text>{b.email}</Text>
-            <Text>{b.phone}</Text>
-            <Text>Tid: {b.time}</Text>
-
-            {/* DELETE */}
-            <TouchableOpacity
-              onPress={() => deleteBooking(b.id)}
-              style={{
-                marginTop: 10,
-                backgroundColor: "black",
-                padding: 10,
-                borderRadius: 6,
-              }}
-            >
-              <Text style={{ color: "white" }}>
-                Ta bort bokning
-              </Text>
-            </TouchableOpacity>
-          </View>
-        ))
-      )}
+      {bookings.map((b, i) => (
+        <View
+          key={i}
+          style={{
+            backgroundColor: "#111",
+            padding: 15,
+            marginTop: 10,
+            borderRadius: 10,
+          }}
+        >
+          <Text style={{ color: "white", fontSize: 16 }}>{b.name}</Text>
+          <Text style={{ color: "#999" }}>
+            {b.day} - {b.time}
+          </Text>
+        </View>
+      ))}
     </ScrollView>
   );
 }
