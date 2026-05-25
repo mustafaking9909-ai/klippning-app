@@ -1,3 +1,5 @@
+console.log("🔥 BOOK BUTTON CLICKED");
+alert("CLICKED");
 import React, { useEffect, useState } from "react";
 import {
   View,
