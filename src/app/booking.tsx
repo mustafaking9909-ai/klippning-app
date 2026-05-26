@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -12,26 +12,6 @@ import {
 import { supabase } from "../lib/supabase";
 import LuxuryCalendar from "../components/LuxuryCalendar";
 
-const TIMES = [
-  "13:00",
-  "13:30",
-  "14:00",
-  "14:30",
-  "15:00",
-  "15:30",
-  "16:00",
-  "17:00",
-  "17:30",
-  "18:00",
-  "18:30",
-  "19:00",
-  "20:00",
-  "20:30",
-  "21:00",
-  "21:30",
-  "22:00",
-];
-
 export default function BookingScreen() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -40,23 +20,38 @@ export default function BookingScreen() {
   const [selectedTime, setSelectedTime] = useState("");
 
   const [bookings, setBookings] = useState<any[]>([]);
+  const [slots, setSlots] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
+  // 💈 LOAD BOOKINGS
   const loadBookings = async () => {
     const { data } = await supabase.from("bookings").select("*");
     if (data) setBookings(data);
   };
 
+  // 💈 LOAD LIVE SLOTS (FROM ADMIN)
+  const loadSlots = async () => {
+    const { data } = await supabase
+      .from("available_slots")
+      .select("*")
+      .eq("is_active", true);
+
+    if (data) setSlots(data);
+  };
+
   useEffect(() => {
     loadBookings();
+    loadSlots();
   }, []);
 
+  // ❌ CHECK IF TAKEN
   const isTaken = (day: number | null, time: string) => {
     return bookings.some(
       (b) => b.day == day && b.time === time
     );
   };
 
+  // 💥 BOOK
   const handleBooking = async () => {
     if (!name || !phone || !selectedDay || !selectedTime) {
       Alert.alert("Fyll i alla fält");
@@ -115,7 +110,7 @@ export default function BookingScreen() {
         onSelectDay={setSelectedDay}
       />
 
-      {/* TIMES */}
+      {/* TIMES (LIVE FROM ADMIN) */}
       <Text style={{ color: "white", marginLeft: 20 }}>
         Välj tid
       </Text>
@@ -128,40 +123,42 @@ export default function BookingScreen() {
           marginTop: 10,
         }}
       >
-        {TIMES.map((t) => {
-          const taken = isTaken(selectedDay, t);
+        {slots
+          .filter((s) => s.day === String(selectedDay))
+          .map((slot) => {
+            const taken = isTaken(selectedDay, slot.time);
 
-          return (
-            <TouchableOpacity
-              key={t}
-              disabled={taken}
-              onPress={() => setSelectedTime(t)}
-              style={{
-                backgroundColor: taken
-                  ? "#3a1a1a"
-                  : selectedTime === t
-                  ? "gold"
-                  : "#1A1A1A",
-                padding: 12,
-                borderRadius: 12,
-                marginRight: 10,
-                marginBottom: 10,
-                opacity: taken ? 0.4 : 1,
-              }}
-            >
-              <Text
+            return (
+              <TouchableOpacity
+                key={slot.time}
+                disabled={taken}
+                onPress={() => setSelectedTime(slot.time)}
                 style={{
-                  color:
-                    selectedTime === t && !taken
-                      ? "black"
-                      : "white",
+                  backgroundColor: taken
+                    ? "#3a1a1a"
+                    : selectedTime === slot.time
+                    ? "gold"
+                    : "#1A1A1A",
+                  padding: 12,
+                  borderRadius: 12,
+                  marginRight: 10,
+                  marginBottom: 10,
+                  opacity: taken ? 0.4 : 1,
                 }}
               >
-                {t}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
+                <Text
+                  style={{
+                    color:
+                      selectedTime === slot.time
+                        ? "black"
+                        : "white",
+                  }}
+                >
+                  {slot.time}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
       </View>
 
       {/* INPUTS */}
@@ -193,6 +190,7 @@ export default function BookingScreen() {
           }}
         />
 
+        {/* BUTTON */}
         <TouchableOpacity
           onPress={handleBooking}
           disabled={loading}
