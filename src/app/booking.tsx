@@ -12,6 +12,12 @@ import {
 import { supabase } from "../lib/supabase";
 import LuxuryCalendar from "../components/LuxuryCalendar";
 
+const TIMES = [
+  "13:00","13:30","14:00","14:30","15:00","15:30",
+  "16:00","17:00","17:30","18:00","18:30",
+  "19:00","20:00","20:30","21:00","21:30","22:00"
+];
+
 export default function BookingScreen() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -20,38 +26,21 @@ export default function BookingScreen() {
   const [selectedTime, setSelectedTime] = useState("");
 
   const [bookings, setBookings] = useState<any[]>([]);
-  const [slots, setSlots] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // 💈 LOAD BOOKINGS
   const loadBookings = async () => {
     const { data } = await supabase.from("bookings").select("*");
     if (data) setBookings(data);
   };
 
-  // 💈 LOAD LIVE SLOTS (FROM ADMIN)
-  const loadSlots = async () => {
-    const { data } = await supabase
-      .from("available_slots")
-      .select("*")
-      .eq("is_active", true);
-
-    if (data) setSlots(data);
-  };
-
   useEffect(() => {
     loadBookings();
-    loadSlots();
   }, []);
 
-  // ❌ CHECK IF TAKEN
   const isTaken = (day: number | null, time: string) => {
-    return bookings.some(
-      (b) => b.day == day && b.time === time
-    );
+    return bookings.some((b) => b.day == day && b.time === time);
   };
 
-  // 💥 BOOK
   const handleBooking = async () => {
     if (!name || !phone || !selectedDay || !selectedTime) {
       Alert.alert("Fyll i alla fält");
@@ -89,87 +78,108 @@ export default function BookingScreen() {
   };
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: "#0A0A0A" }}>
-      
+    <ScrollView style={{ flex: 1, backgroundColor: "#070707" }}>
+
       {/* HEADER */}
-      <Text
-        style={{
-          color: "gold",
-          fontSize: 32,
-          fontWeight: "800",
-          marginTop: 50,
-          marginLeft: 20,
-        }}
-      >
-        Boka tid 💈
-      </Text>
-
-      {/* CALENDAR */}
-      <LuxuryCalendar
-        selectedDay={selectedDay}
-        onSelectDay={setSelectedDay}
-      />
-
-      {/* TIMES (LIVE FROM ADMIN) */}
-      <Text style={{ color: "white", marginLeft: 20 }}>
-        Välj tid
-      </Text>
-
-      <View
-        style={{
-          flexDirection: "row",
-          flexWrap: "wrap",
-          paddingLeft: 20,
-          marginTop: 10,
-        }}
-      >
-        {slots
-          .filter((s) => s.day === String(selectedDay))
-          .map((slot) => {
-            const taken = isTaken(selectedDay, slot.time);
-
-            return (
-              <TouchableOpacity
-                key={slot.time}
-                disabled={taken}
-                onPress={() => setSelectedTime(slot.time)}
-                style={{
-                  backgroundColor: taken
-                    ? "#3a1a1a"
-                    : selectedTime === slot.time
-                    ? "gold"
-                    : "#1A1A1A",
-                  padding: 12,
-                  borderRadius: 12,
-                  marginRight: 10,
-                  marginBottom: 10,
-                  opacity: taken ? 0.4 : 1,
-                }}
-              >
-                <Text
-                  style={{
-                    color:
-                      selectedTime === slot.time
-                        ? "black"
-                        : "white",
-                  }}
-                >
-                  {slot.time}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
+      <View style={{ padding: 25, marginTop: 30 }}>
+        <Text style={{ color: "gold", fontSize: 34, fontWeight: "900" }}>
+          Boka tid 💈
+        </Text>
+        <Text style={{ color: "#999", marginTop: 5 }}>
+          Välj datum & tid för din klippning
+        </Text>
       </View>
 
-      {/* INPUTS */}
-      <View style={{ padding: 20 }}>
+      {/* CALENDAR CARD */}
+      <View
+        style={{
+          marginHorizontal: 20,
+          borderRadius: 20,
+          backgroundColor: "#111",
+          padding: 10,
+          shadowColor: "#000",
+          shadowOpacity: 0.4,
+          shadowRadius: 10,
+        }}
+      >
+        <LuxuryCalendar
+          selectedDay={selectedDay}
+          onSelectDay={setSelectedDay}
+        />
+      </View>
+
+      {/* TIME TITLE */}
+      <Text
+        style={{
+          color: "white",
+          marginLeft: 20,
+          marginTop: 20,
+          fontSize: 16,
+          fontWeight: "600",
+        }}
+      >
+        Tillgängliga tider
+      </Text>
+
+      {/* TIMES */}
+      <View style={{ flexDirection: "row", flexWrap: "wrap", padding: 15 }}>
+        {TIMES.map((t) => {
+          const taken = isTaken(selectedDay, t);
+
+          return (
+            <TouchableOpacity
+              key={t}
+              disabled={taken}
+              onPress={() => setSelectedTime(t)}
+              style={{
+                backgroundColor: taken
+                  ? "#2a0f0f"
+                  : selectedTime === t
+                  ? "gold"
+                  : "#151515",
+                paddingVertical: 12,
+                paddingHorizontal: 14,
+                borderRadius: 14,
+                margin: 6,
+                shadowColor: "#000",
+                shadowOpacity: selectedTime === t ? 0.4 : 0,
+                shadowRadius: 10,
+              }}
+            >
+              <Text
+                style={{
+                  color:
+                    selectedTime === t && !taken ? "black" : "#fff",
+                  fontWeight: "600",
+                }}
+              >
+                {t}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      {/* FORM CARD */}
+      <View
+        style={{
+          margin: 20,
+          padding: 20,
+          backgroundColor: "#111",
+          borderRadius: 20,
+        }}
+      >
+        <Text style={{ color: "white", marginBottom: 10 }}>
+          Dina uppgifter
+        </Text>
+
         <TextInput
           placeholder="Namn"
           placeholderTextColor="#777"
           value={name}
           onChangeText={setName}
           style={{
-            backgroundColor: "#111",
+            backgroundColor: "#1A1A1A",
             color: "white",
             padding: 15,
             borderRadius: 12,
@@ -183,22 +193,25 @@ export default function BookingScreen() {
           value={phone}
           onChangeText={setPhone}
           style={{
-            backgroundColor: "#111",
+            backgroundColor: "#1A1A1A",
             color: "white",
             padding: 15,
             borderRadius: 12,
           }}
         />
 
-        {/* BUTTON */}
+        {/* LUXURY BUTTON */}
         <TouchableOpacity
           onPress={handleBooking}
           disabled={loading}
           style={{
-            backgroundColor: "gold",
-            padding: 18,
-            borderRadius: 14,
             marginTop: 20,
+            padding: 16,
+            borderRadius: 16,
+            backgroundColor: "gold",
+            shadowColor: "gold",
+            shadowOpacity: 0.5,
+            shadowRadius: 15,
             alignItems: "center",
           }}
         >
@@ -208,7 +221,7 @@ export default function BookingScreen() {
             <Text
               style={{
                 color: "black",
-                fontWeight: "800",
+                fontWeight: "900",
                 fontSize: 16,
               }}
             >
