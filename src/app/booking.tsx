@@ -25,6 +25,9 @@ export default function BookingScreen() {
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [selectedTime, setSelectedTime] = useState("");
 
+  const [service, setService] = useState<string | null>(null);
+  const [price, setPrice] = useState(0);
+
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -41,9 +44,21 @@ export default function BookingScreen() {
     return bookings.some((b) => b.day == day && b.time === time);
   };
 
+  const selectService = (type: string, cost: number) => {
+    setService(type);
+    setPrice(cost);
+  };
+
+  const addBeard = () => {
+    if (!service) return;
+
+    setService(service + " + Skägg");
+    setPrice(price + 50);
+  };
+
   const handleBooking = async () => {
-    if (!name || !phone || !selectedDay || !selectedTime) {
-      Alert.alert("Fyll i alla fält");
+    if (!name || !phone || !selectedDay || !selectedTime || !service) {
+      Alert.alert("Fyll i allt (inkl tjänst)");
       return;
     }
 
@@ -55,8 +70,9 @@ export default function BookingScreen() {
         phone,
         day: String(selectedDay),
         time: selectedTime,
+        service: service,
+        price: price,
         status: "confirmed",
-        price: 150,
         created_at: new Date().toISOString(),
       },
     ]);
@@ -72,54 +88,91 @@ export default function BookingScreen() {
     setName("");
     setPhone("");
     setSelectedTime("");
+    setService(null);
+    setPrice(0);
 
     loadBookings();
     setLoading(false);
   };
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: "#070707" }}>
+    <ScrollView style={{ flex: 1, backgroundColor: "#0A0A0A" }}>
+      
+      {/* TITLE */}
+      <Text style={{
+        color: "gold",
+        fontSize: 32,
+        fontWeight: "900",
+        marginTop: 50,
+        marginLeft: 20,
+      }}>
+        Boka tid 💈
+      </Text>
 
-      {/* HEADER */}
-      <View style={{ padding: 25, marginTop: 30 }}>
-        <Text style={{ color: "gold", fontSize: 34, fontWeight: "900" }}>
-          Boka tid 💈
-        </Text>
-        <Text style={{ color: "#999", marginTop: 5 }}>
-          Välj datum & tid för din klippning
-        </Text>
-      </View>
-
-      {/* CALENDAR CARD */}
+      {/* SERVICES */}
       <View
         style={{
-          marginHorizontal: 20,
-          borderRadius: 20,
+          margin: 20,
+          padding: 15,
           backgroundColor: "#111",
-          padding: 10,
-          shadowColor: "#000",
-          shadowOpacity: 0.4,
-          shadowRadius: 10,
+          borderRadius: 15,
         }}
       >
-        <LuxuryCalendar
-          selectedDay={selectedDay}
-          onSelectDay={setSelectedDay}
-        />
+        <Text style={{ color: "white", fontWeight: "800", marginBottom: 10 }}>
+          Välj tjänst
+        </Text>
+
+        <TouchableOpacity
+          onPress={() => selectService("Herrklippning", 150)}
+          style={{
+            padding: 12,
+            backgroundColor: service === "Herrklippning" ? "gold" : "#1A1A1A",
+            borderRadius: 10,
+            marginBottom: 10,
+          }}
+        >
+          <Text style={{ color: service === "Herrklippning" ? "black" : "white" }}>
+            Herrklippning — 150 kr
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => selectService("Line up", 80)}
+          style={{
+            padding: 12,
+            backgroundColor: service === "Line up" ? "gold" : "#1A1A1A",
+            borderRadius: 10,
+            marginBottom: 10,
+          }}
+        >
+          <Text style={{ color: service === "Line up" ? "black" : "white" }}>
+            Line up — 80 kr
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={addBeard}
+          style={{
+            padding: 12,
+            backgroundColor: "#1A1A1A",
+            borderRadius: 10,
+          }}
+        >
+          <Text style={{ color: "white" }}>
+            + Skägg (+50 kr)
+          </Text>
+        </TouchableOpacity>
+
+        <Text style={{ color: "gold", marginTop: 10, fontWeight: "800" }}>
+          Pris: {price} kr
+        </Text>
       </View>
 
-      {/* TIME TITLE */}
-      <Text
-        style={{
-          color: "white",
-          marginLeft: 20,
-          marginTop: 20,
-          fontSize: 16,
-          fontWeight: "600",
-        }}
-      >
-        Tillgängliga tider
-      </Text>
+      {/* CALENDAR */}
+      <LuxuryCalendar
+        selectedDay={selectedDay}
+        onSelectDay={setSelectedDay}
+      />
 
       {/* TIMES */}
       <View style={{ flexDirection: "row", flexWrap: "wrap", padding: 15 }}>
@@ -133,53 +186,31 @@ export default function BookingScreen() {
               onPress={() => setSelectedTime(t)}
               style={{
                 backgroundColor: taken
-                  ? "#2a0f0f"
+                  ? "#3a1a1a"
                   : selectedTime === t
                   ? "gold"
-                  : "#151515",
-                paddingVertical: 12,
-                paddingHorizontal: 14,
-                borderRadius: 14,
-                margin: 6,
-                shadowColor: "#000",
-                shadowOpacity: selectedTime === t ? 0.4 : 0,
-                shadowRadius: 10,
+                  : "#1A1A1A",
+                padding: 12,
+                margin: 5,
+                borderRadius: 10,
+                opacity: taken ? 0.4 : 1,
               }}
             >
-              <Text
-                style={{
-                  color:
-                    selectedTime === t && !taken ? "black" : "#fff",
-                  fontWeight: "600",
-                }}
-              >
-                {t}
-              </Text>
+              <Text style={{ color: "white" }}>{t}</Text>
             </TouchableOpacity>
           );
         })}
       </View>
 
-      {/* FORM CARD */}
-      <View
-        style={{
-          margin: 20,
-          padding: 20,
-          backgroundColor: "#111",
-          borderRadius: 20,
-        }}
-      >
-        <Text style={{ color: "white", marginBottom: 10 }}>
-          Dina uppgifter
-        </Text>
-
+      {/* INPUTS */}
+      <View style={{ padding: 20 }}>
         <TextInput
           placeholder="Namn"
           placeholderTextColor="#777"
           value={name}
           onChangeText={setName}
           style={{
-            backgroundColor: "#1A1A1A",
+            backgroundColor: "#111",
             color: "white",
             padding: 15,
             borderRadius: 12,
@@ -193,38 +224,29 @@ export default function BookingScreen() {
           value={phone}
           onChangeText={setPhone}
           style={{
-            backgroundColor: "#1A1A1A",
+            backgroundColor: "#111",
             color: "white",
             padding: 15,
             borderRadius: 12,
           }}
         />
 
-        {/* LUXURY BUTTON */}
+        {/* BUTTON */}
         <TouchableOpacity
           onPress={handleBooking}
           disabled={loading}
           style={{
-            marginTop: 20,
-            padding: 16,
-            borderRadius: 16,
             backgroundColor: "gold",
-            shadowColor: "gold",
-            shadowOpacity: 0.5,
-            shadowRadius: 15,
+            padding: 18,
+            borderRadius: 14,
+            marginTop: 20,
             alignItems: "center",
           }}
         >
           {loading ? (
             <ActivityIndicator color="black" />
           ) : (
-            <Text
-              style={{
-                color: "black",
-                fontWeight: "900",
-                fontSize: 16,
-              }}
-            >
+            <Text style={{ fontWeight: "900", color: "black" }}>
               Bekräfta bokning
             </Text>
           )}
