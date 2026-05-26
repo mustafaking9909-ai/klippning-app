@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -12,93 +12,33 @@ import { useRouter } from "expo-router";
 export default function HomeScreen() {
   const router = useRouter();
 
+  const [service, setService] = useState<null | string>(null);
+  const [price, setPrice] = useState(0);
+
+  const selectService = (type: string, cost: number) => {
+    setService(type);
+    setPrice(cost);
+  };
+
   return (
     <ImageBackground
       source={require("../../assets/bg.jpeg")}
       style={{ flex: 1 }}
       resizeMode="cover"
     >
-      {/* DARK OVERLAY */}
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: "rgba(0,0,0,0.65)",
-        }}
-      >
-        <ScrollView style={{ flex: 1 }}>
+      <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.65)" }}>
+        <ScrollView>
 
-          {/* LOGO HERO */}
-          <View
-            style={{
-              alignItems: "center",
-              marginTop: 70,
-              marginBottom: 20,
-            }}
-          >
+          {/* LOGO (STÖRRE NU) */}
+          <View style={{ alignItems: "center", marginTop: 60 }}>
             <Image
               source={require("../../assets/images/logo.png")}
               style={{
-                width: 160,
-                height: 160,
+                width: 220,
+                height: 220,
                 resizeMode: "contain",
               }}
             />
-          </View>
-
-          {/* TEXT */}
-          <View style={{ paddingHorizontal: 30 }}>
-            <Text
-              style={{
-                color: "#ddd",
-                fontSize: 15,
-                textAlign: "center",
-                lineHeight: 22,
-              }}
-            >
-              Premium barber experience. Fade, skägg & style i toppklass.
-            </Text>
-          </View>
-
-          {/* BOOK CARD */}
-          <View
-            style={{
-              margin: 20,
-              padding: 20,
-              backgroundColor: "rgba(20,20,20,0.85)",
-              borderRadius: 20,
-              borderWidth: 1,
-              borderColor: "#222",
-              marginTop: 30,
-            }}
-          >
-            <Text style={{ color: "white", fontSize: 18, fontWeight: "700" }}>
-              💈 Boka din tid
-            </Text>
-
-            <Text style={{ color: "#aaa", marginTop: 8 }}>
-              Välj datum & tid direkt i appen
-            </Text>
-
-            <TouchableOpacity
-              onPress={() => router.push("/booking")}
-              style={{
-                marginTop: 15,
-                backgroundColor: "gold",
-                padding: 16,
-                borderRadius: 16,
-                alignItems: "center",
-              }}
-            >
-              <Text
-                style={{
-                  color: "black",
-                  fontWeight: "900",
-                  fontSize: 16,
-                }}
-              >
-                Boka nu
-              </Text>
-            </TouchableOpacity>
           </View>
 
           {/* SERVICES */}
@@ -112,23 +52,103 @@ export default function HomeScreen() {
               borderColor: "#222",
             }}
           >
-            <Text style={{ color: "white", fontSize: 18, fontWeight: "700" }}>
-              💈 Tjänster
+            <Text style={{ color: "white", fontSize: 18, fontWeight: "800" }}>
+              💈 Välj tjänst
             </Text>
 
-            <Text style={{ color: "#bbb", marginTop: 10, lineHeight: 22 }}>
-              ✂ Fade / Skin Fade{"\n"}
-              🧔 Skäggtrim{"\n"}
-              💇 Komplett klippning{"\n"}
-              🔥 Hot towel shave
-            </Text>
+            {/* HERRKLIPPNING */}
+            <TouchableOpacity
+              onPress={() => selectService("Herrklippning", 150)}
+              style={{
+                marginTop: 12,
+                padding: 15,
+                borderRadius: 12,
+                backgroundColor:
+                  service === "Herrklippning" ? "gold" : "#1A1A1A",
+              }}
+            >
+              <Text
+                style={{
+                  color: service === "Herrklippning" ? "black" : "white",
+                  fontWeight: "700",
+                }}
+              >
+                Herrklippning — 150 kr
+              </Text>
+            </TouchableOpacity>
+
+            {/* LINE UP */}
+            <TouchableOpacity
+              onPress={() => selectService("Line up", 80)}
+              style={{
+                marginTop: 12,
+                padding: 15,
+                borderRadius: 12,
+                backgroundColor:
+                  service === "Line up" ? "gold" : "#1A1A1A",
+              }}
+            >
+              <Text
+                style={{
+                  color: service === "Line up" ? "black" : "white",
+                  fontWeight: "700",
+                }}
+              >
+                Line up — 80 kr
+              </Text>
+            </TouchableOpacity>
+
+            {/* SKÄGG ADDON */}
+            <TouchableOpacity
+              onPress={() =>
+                service === "Herrklippning"
+                  ? setPrice(200)
+                  : setPrice(price + 50)
+              }
+              style={{
+                marginTop: 12,
+                padding: 15,
+                borderRadius: 12,
+                backgroundColor: "#1A1A1A",
+              }}
+            >
+              <Text style={{ color: "white", fontWeight: "700" }}>
+                + Skägg (+50 kr)
+              </Text>
+            </TouchableOpacity>
+
+            {/* PRICE DISPLAY */}
+            <View style={{ marginTop: 15 }}>
+              <Text style={{ color: "gold", fontSize: 18, fontWeight: "800" }}>
+                Pris: {price} kr
+              </Text>
+            </View>
           </View>
 
-          {/* FOOTER */}
-          <View style={{ padding: 20 }}>
-            <Text style={{ color: "#555", textAlign: "center" }}>
-              Premium Barber Experience
-            </Text>
+          {/* BOOK BUTTON */}
+          <View
+            style={{
+              margin: 20,
+              padding: 20,
+              backgroundColor: "rgba(20,20,20,0.85)",
+              borderRadius: 20,
+              borderWidth: 1,
+              borderColor: "#222",
+            }}
+          >
+            <TouchableOpacity
+              onPress={() => router.push("/booking")}
+              style={{
+                backgroundColor: "gold",
+                padding: 16,
+                borderRadius: 16,
+                alignItems: "center",
+              }}
+            >
+              <Text style={{ color: "black", fontWeight: "900", fontSize: 16 }}>
+                Fortsätt till bokning
+              </Text>
+            </TouchableOpacity>
           </View>
 
         </ScrollView>
